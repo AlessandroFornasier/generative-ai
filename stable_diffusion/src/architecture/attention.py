@@ -74,63 +74,63 @@ class MultiHeadAttention(nn.Module):
         
 
 # class CrossAttention(nn.Module):
-    """
+#     """
     
-    Refernce:
-     - https://github.com/hkproj/pytorch-stable-diffusion
-    """
-    def __init__(self, heads, f, d_cross, in_proj_bias=True, out_proj_bias=True):
-        super().__init__()
-        self.q_proj   = nn.Linear(f, f, bias=in_proj_bias)
-        self.k_proj   = nn.Linear(d_cross, f, bias=in_proj_bias)
-        self.v_proj   = nn.Linear(d_cross, f, bias=in_proj_bias)
-        self.out_proj = nn.Linear(f, f, bias=out_proj_bias)
-        self.heads = heads
-        self.d_head = f // heads
+#     Refernce:
+#      - https://github.com/hkproj/pytorch-stable-diffusion
+#     """
+#     def __init__(self, heads, f, d_cross, in_proj_bias=True, out_proj_bias=True):
+#         super().__init__()
+#         self.q_proj   = nn.Linear(f, f, bias=in_proj_bias)
+#         self.k_proj   = nn.Linear(d_cross, f, bias=in_proj_bias)
+#         self.v_proj   = nn.Linear(d_cross, f, bias=in_proj_bias)
+#         self.out_proj = nn.Linear(f, f, bias=out_proj_bias)
+#         self.heads = heads
+#         self.d_head = f // heads
     
-    def forward(self, x, y):
-        # x (latent): # (batch_Size, sequence_len_Q, dim_Q)
-        # y (context): # (batch_Size, sequence_len_KV, dim_KV) = (batch_Size, 77, 768)
+#     def forward(self, x, y):
+#         # x (latent): # (batch_Size, sequence_len_Q, dim_Q)
+#         # y (context): # (batch_Size, sequence_len_KV, dim_KV) = (batch_Size, 77, 768)
 
-        input_shape = x.shape
-        batch_Size, sequence_length, f = input_shape
-        # Divide each embedding of Q into multiple heads such that d_heads * heads = dim_Q
-        interim_shape = (batch_Size, -1, self.heads, self.d_head)
+#         input_shape = x.shape
+#         batch_Size, sequence_length, f = input_shape
+#         # Divide each embedding of Q into multiple heads such that d_heads * heads = dim_Q
+#         interim_shape = (batch_Size, -1, self.heads, self.d_head)
         
-        # (batch_Size, sequence_len_Q, dim_Q) -> (batch_Size, sequence_len_Q, dim_Q)
-        q = self.q_proj(x)
-        # (batch_Size, sequence_len_KV, dim_KV) -> (batch_Size, sequence_len_KV, dim_Q)
-        k = self.k_proj(y)
-        # (batch_Size, sequence_len_KV, dim_KV) -> (batch_Size, sequence_len_KV, dim_Q)
-        v = self.v_proj(y)
+#         # (batch_Size, sequence_len_Q, dim_Q) -> (batch_Size, sequence_len_Q, dim_Q)
+#         q = self.q_proj(x)
+#         # (batch_Size, sequence_len_KV, dim_KV) -> (batch_Size, sequence_len_KV, dim_Q)
+#         k = self.k_proj(y)
+#         # (batch_Size, sequence_len_KV, dim_KV) -> (batch_Size, sequence_len_KV, dim_Q)
+#         v = self.v_proj(y)
 
-        # (batch_Size, sequence_len_Q, dim_Q) -> (batch_Size, sequence_len_Q, H, dim_Q / H) -> (batch_Size, H, sequence_len_Q, dim_Q / H)
-        q = q.view(interim_shape).transpose(1, 2) 
-        # (batch_Size, sequence_len_KV, dim_Q) -> (batch_Size, sequence_len_KV, H, dim_Q / H) -> (batch_Size, H, sequence_len_KV, dim_Q / H)
-        k = k.view(interim_shape).transpose(1, 2) 
-        # (batch_Size, sequence_len_KV, dim_Q) -> (batch_Size, sequence_len_KV, H, dim_Q / H) -> (batch_Size, H, sequence_len_KV, dim_Q / H)
-        v = v.view(interim_shape).transpose(1, 2) 
+#         # (batch_Size, sequence_len_Q, dim_Q) -> (batch_Size, sequence_len_Q, H, dim_Q / H) -> (batch_Size, H, sequence_len_Q, dim_Q / H)
+#         q = q.view(interim_shape).transpose(1, 2) 
+#         # (batch_Size, sequence_len_KV, dim_Q) -> (batch_Size, sequence_len_KV, H, dim_Q / H) -> (batch_Size, H, sequence_len_KV, dim_Q / H)
+#         k = k.view(interim_shape).transpose(1, 2) 
+#         # (batch_Size, sequence_len_KV, dim_Q) -> (batch_Size, sequence_len_KV, H, dim_Q / H) -> (batch_Size, H, sequence_len_KV, dim_Q / H)
+#         v = v.view(interim_shape).transpose(1, 2) 
         
-        # (batch_Size, H, sequence_len_Q, dim_Q / H) @ (batch_Size, H, dim_Q / H, sequence_len_KV) -> (batch_Size, H, sequence_len_Q, sequence_len_KV)
-        weight = q @ k.transpose(-1, -2)
+#         # (batch_Size, H, sequence_len_Q, dim_Q / H) @ (batch_Size, H, dim_Q / H, sequence_len_KV) -> (batch_Size, H, sequence_len_Q, sequence_len_KV)
+#         weight = q @ k.transpose(-1, -2)
         
-        # (batch_Size, H, sequence_len_Q, sequence_len_KV)
-        weight /= math.sqrt(self.d_head)
+#         # (batch_Size, H, sequence_len_Q, sequence_len_KV)
+#         weight /= math.sqrt(self.d_head)
         
-        # (batch_Size, H, sequence_len_Q, sequence_len_KV)
-        weight = F.softmax(weight, dim=-1)
+#         # (batch_Size, H, sequence_len_Q, sequence_len_KV)
+#         weight = F.softmax(weight, dim=-1)
         
-        # (batch_Size, H, sequence_len_Q, sequence_len_KV) @ (batch_Size, H, sequence_len_KV, dim_Q / H) -> (batch_Size, H, sequence_len_Q, dim_Q / H)
-        output = weight @ v
+#         # (batch_Size, H, sequence_len_Q, sequence_len_KV) @ (batch_Size, H, sequence_len_KV, dim_Q / H) -> (batch_Size, H, sequence_len_Q, dim_Q / H)
+#         output = weight @ v
         
-        # (batch_Size, H, sequence_len_Q, dim_Q / H) -> (batch_Size, sequence_len_Q, H, dim_Q / H)
-        output = output.transpose(1, 2).contiguous()
+#         # (batch_Size, H, sequence_len_Q, dim_Q / H) -> (batch_Size, sequence_len_Q, H, dim_Q / H)
+#         output = output.transpose(1, 2).contiguous()
         
-        # (batch_Size, sequence_len_Q, H, dim_Q / H) -> (batch_Size, sequence_len_Q, dim_Q)
-        output = output.view(input_shape)
+#         # (batch_Size, sequence_len_Q, H, dim_Q / H) -> (batch_Size, sequence_len_Q, dim_Q)
+#         output = output.view(input_shape)
         
-        # (batch_Size, sequence_len_Q, dim_Q) -> (batch_Size, sequence_len_Q, dim_Q)
-        output = self.out_proj(output)
+#         # (batch_Size, sequence_len_Q, dim_Q) -> (batch_Size, sequence_len_Q, dim_Q)
+#         output = self.out_proj(output)
 
-        # (batch_Size, sequence_len_Q, dim_Q)
-        return output
+#         # (batch_Size, sequence_len_Q, dim_Q)
+#         return output
