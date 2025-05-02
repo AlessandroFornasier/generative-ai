@@ -91,7 +91,7 @@ class Trainer:
     """
     self.train(dataloader=dataloader)
     os.makedirs(path, exist_ok=True)
-    torch.save(self.model.state_dict(), f'{path}/{name}')
+    torch.save(self.model.state_dict(), f'{path}/{name}.pt')
     print(f'Model {name} saved to: {path}/{name}')
 
   def test(self, dataloader: DataLoader) -> None:
@@ -131,6 +131,6 @@ class Trainer:
       path (str): Path relative to the model folder where the model weights are saved
       name (str): name of the model weights
     """
-    self.model.load_state_dict(torch.load(f'{path}/{name}'))
+    self.model.load_state_dict(torch.load(f'{path}/{name}.pt'))
     print(f"Model: {name}")
     self.test(dataloader=dataloader)
