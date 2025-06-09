@@ -37,38 +37,44 @@ class Autoencoder(nn.Module):
   ) -> None:
     super(Autoencoder, self).__init__()
 
-    self.encoder = nn.Sequential(encoder)
-    self.decoder = nn.Sequential(decoder)
+    self.encoder = nn.Sequential(*encoder.values())
+    self.decoder = nn.Sequential(*decoder.values())
 
-    def encode(self, x) -> torch.Tensor:
-      """
-      Encodes the input data into the latent space.
+  def encode(self, x) -> torch.Tensor:
+    """
+    Encodes the input data into the latent space.
 
-      Args:
-        x (torch.Tensor): Input data.
+    Args:
+      x (torch.Tensor): Input data.
 
-      Returns:
-        z (torch.Tensor): Encoded data, latent space.
-      """
-      return self.encoder(x)
+    Returns:
+      z (torch.Tensor): Encoded data, latent space.
+    """
+    return self.encoder(x)
 
-    def decode(self, z) -> torch.Tensor:
-      """
-      Decodes the latent space data.
+  def decode(self, z) -> torch.Tensor:
+    """
+    Decodes the latent space data.
 
-      Args:
-        z (torch.Tensor): Latent space data.
+    Args:
+      z (torch.Tensor): Latent space data.
 
-      Returns:
-        x_hat (torch.Tensor): Decoded data, output space.
-      """
-      return self.decoder(z)
+    Returns:
+      x_hat (torch.Tensor): Decoded data, output space.
+    """
+    return self.decoder(z)
 
-    def forward(self, x) -> torch.Tensor:
-      """
-      Forward pass of the autoencoder
-      """
-      state = AutoencoderState(x)
-      state.z = self.encode(x)
-      state.x_hat = self.decode(state.z)
-      return state
+  def forward(self, x) -> torch.Tensor:
+    """
+    Forward pass of the autoencoder.
+
+    Args:
+      x (torch.Tensor): Input data.
+
+    Returns:
+      AutoencoderState: An object containing the input data, latent representation, and reconstructed output.
+    """
+    state = AutoencoderState(x)
+    state.z = self.encode(x)
+    state.x_hat = self.decode(state.z)
+    return state

@@ -78,21 +78,7 @@ class Trainer:
             self.writer.add_scalar(f"Train/Loss/{name}", loss, step)
 
         step += 1
-        print(f"Epoch [{epoch+1}/{self.epochs}] - Batch loss: {batch_loss:.4f} - Epoch Loss: {epoch_loss:.4f} - Avg Loss: {average_loss:.4f}")
-
-  def train_and_save(self, dataloader: DataLoader, path: str, name: str):
-    """
-    Trains the autoencoder model on the given dataset and save the model weight.
-
-    Args:
-      dataloader (DataLoader): The DataLoader for loading training data.
-      path (str): Path to save the model weights
-      name (str): name of the model weights
-    """
-    self.train(dataloader=dataloader)
-    os.makedirs(path, exist_ok=True)
-    torch.save(self.model.state_dict(), f'{path}/{name}.pt')
-    print(f'Model {name} saved to: {path}/{name}')
+        tqdm.write(f"Epoch [{epoch+1}/{self.epochs}] - Batch loss: {batch_loss:.4f} (R: {losses['Reconstruction']:.4f}, KL: {losses['KL']:.4f}) - Epoch Loss: {epoch_loss:.4f} - Avg Loss: {average_loss:.4f}")
 
   def test(self, dataloader: DataLoader) -> None:
     """
@@ -122,15 +108,25 @@ class Trainer:
 
     print(f"Average test loss: {average_loss:.4f}")
 
-  def load_and_test(self, dataloader: DataLoader, path: str, name: str):
+  def save(self, path: str, name: str):
     """
-    Test the autoencoder model on the given dataset.
+    Save the model weight.
 
     Args:
-      dataloader (DataLoader): The DataLoader for loading training data.
+      path (str): Path to save the model weights
+      name (str): name of the model weights
+    """
+    os.makedirs(path, exist_ok=True)
+    torch.save(self.model.state_dict(), f'{path}/{name}.pt')
+    print(f'Model {name} saved to: {path}/{name}')
+
+  def load(self, path: str, name: str):
+    """
+    Load a model.
+
+    Args:
       path (str): Path relative to the model folder where the model weights are saved
       name (str): name of the model weights
     """
     self.model.load_state_dict(torch.load(f'{path}/{name}.pt'))
-    print(f"Model: {name}")
-    self.test(dataloader=dataloader)
+    print(f"Model: {name} loaded from {path}/{name}.pt")

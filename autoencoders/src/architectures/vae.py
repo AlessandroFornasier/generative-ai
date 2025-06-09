@@ -102,11 +102,13 @@ class VAE(Autoencoder):
 
 class VAELoss:
   """
-  VAE Loss callable class. The VAE loss is given by the ELBO,
-  which is the the sum of the reconstruction loss and the KL divergence loss
+  VAE Loss callable class. The VAE loss is given by the Evidence Lower BOund (ELBO),
+  which is the the sum of the reconstruction loss and the KL divergence loss.
+
+  Calling the class returns a dictionary containing the reconstruction and the kl losses.
 
   Note:
-    A VAE is trained by maximizing ELBO:
+    A VAE is trained by maximizing the ELBO:
     - Reconstruction loss (MSE ~ cross entropy)
     - KL divergence
 
@@ -114,20 +116,25 @@ class VAELoss:
     - https://hunterheidenreich.com/posts/modern-variational-autoencoder-in-pytorch/
     - https://github.com/pytorch/examples/blob/main/vae/main.py
   """
-  def __init__(self, binary: bool) -> None:
+  def __init__(self, binary: bool, beta: float = 1.0) -> None:
     self.binary = binary
+    self.beta = beta
 
-  def __binary_vae_loss(self, state: VAEState) -> Dict[str, torch.Tensor]:
-    rl = Func.binary_cross_entropy(state.x_hat, state.x, reduction='none').sum(-1).mean() # Reconstruction loss
+  def __kl_loss(self, state : VAEState) -> torch.Tensor:
     target_dist = torch.distributions.MultivariateNormal(
       torch.zeros_like(state.z, device=state.z.device),
       scale_tril=torch.eye(state.z.shape[-1], device=state.z.device).unsqueeze(0).expand(state.z.shape[0], -1, -1),
     )
-    kll = torch.distributions.kl.kl_divergence(state.dist, target_dist).mean() # KL loss
-    return {"Reconstruction": rl, "KL": kll}
+    return self.beta * torch.distributions.kl.kl_divergence(state.dist, target_dist).mean()
+
+  def __binary_reconstruction_loss(self, state: VAEState) -> Dict[str, torch.Tensor]:
+    return Func.binary_cross_entropy(state.x_hat, state.x, reduction='none').sum(-1).mean()
+    
+  def __reconstruction_loss(self, state: VAEState) -> Dict[str, torch.Tensor]:
+    return Func.mse_loss(state.x_hat, state.x, reduction='none').sum(-1).mean()
 
   def __call__(self, state: VAEState) -> Dict[str, torch.Tensor]:
-    if self.binary:
-      return self.__binary_vae_loss(state)
-    else:
-      raise NotImplementedError
+    return {
+      "Reconstruction": self.__binary_reconstruction_loss(state) if self.binary else self.__reconstruction_loss(state), 
+      "KL": self.__kl_loss(state)
+    }
