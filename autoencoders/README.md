@@ -10,9 +10,9 @@ An **autoencoder** is a neural network that learns to compress data into a lower
 - **Decoder:** Reconstructs $x$ from $z$.
 
 The goal is to minimize the reconstruction loss:
-$$
-\mathcal{L}_{\text{AE}} = \| x - \hat{x} \|^2
-$$
+
+$$\mathcal{L}_{\text{AE}} = \| x - \hat{x} \|^2$$
+
 where $\hat{x}$ is the reconstruction of $x$ from $z$.
 
 ### Variational Autoencoder
@@ -22,16 +22,18 @@ A **variational autoencoder (VAE)** is a probabilistic extension of the autoenco
 - **Encoder:** Approximates the posterior $p(z|x)$ with a learned distribution $q(z|x)$.
 - **Decoder:** Models the likelihood $p(x|z)$.
 
-The VAE is trained by maximizing the evidence lower bound (ELBO): $\mathcal{L}_{\text{VAE}} = \mathbb{E}_{q(z|x)} [\log p(x|z)] - D_{\mathrm{KL}}(q(z|x) \| p(z))$ where $D_{\mathrm{KL}}$ is the Kullback-Leibler divergence between the approximate posterior and the prior $p(z)$.
+The VAE is trained by maximizing the evidence lower bound (ELBO): 
+
+$$\mathcal{L}_{\text{VAE}} = \mathbb{E} _{q(z|x)} \[\log _p(x|z)\] - D _{\mathrm{KL}}(q(z|x) \| p(z))$$ 
+
+where $D_{\mathrm{KL}}$ is the Kullback-Leibler divergence between the approximate posterior and the prior $p(z)$.
 
 #### The Role of the Reparametrization Trick
 
 In VAEs, the encoder outputs parameters of a probability distribution (typically mean $\mu$ and standard deviation $\sigma$) rather than a single latent vector. To enable backpropagation through the sampling process, the **reparametrization trick** is used. 
 Specifically, with $\mu$ $\sigma$ parametrized by the network hyperparameters, the gradient of the ELBO is intractable. Hence, instead of sampling $z \sim \mathcal{N}(\mu, \sigma^2)$ directly, we sample $\epsilon \sim \mathcal{N}(0, 1)$ and compute:
 
-$$
-z = \mu + \sigma \cdot \epsilon
-$$
+$$z = \mu + \sigma \cdot \epsilon$$
 
 This allows gradients to flow through $\mu$ and $\sigma$ during training, making the VAE end-to-end differentiable.
 
