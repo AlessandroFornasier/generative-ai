@@ -22,11 +22,7 @@ A **variational autoencoder (VAE)** is a probabilistic extension of the autoenco
 - **Encoder:** Approximates the posterior $p(z|x)$ with a learned distribution $q(z|x)$.
 - **Decoder:** Models the likelihood $p(x|z)$.
 
-The VAE is trained by maximizing the evidence lower bound (ELBO):
-$$
-\mathcal{L}_{\text{VAE}} = \mathbb{E}_{q(z|x)} [\log p(x|z)] - D_{\mathrm{KL}}(q(z|x) \| p(z))
-$$
-where $D_{\mathrm{KL}}$ is the Kullback-Leibler divergence between the approximate posterior and the prior $p(z)$.
+The VAE is trained by maximizing the evidence lower bound (ELBO): $\mathcal{L}_{\text{VAE}} = \mathbb{E}_{q(z|x)} [\log p(x|z)] - D_{\mathrm{KL}}(q(z|x) \| p(z))$ where $D_{\mathrm{KL}}$ is the Kullback-Leibler divergence between the approximate posterior and the prior $p(z)$.
 
 #### The Role of the Reparametrization Trick
 
