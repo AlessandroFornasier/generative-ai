@@ -54,7 +54,7 @@ This allows gradients to flow through $\mu$ and $\sigma$ during training, making
 
 `VAE_20250608210335`'s encoder has the following layers dimensions [28*28, 512, 256, 128, 64, 32, 12, 6, 3, 2]. In `VAE_20250608211222`'s encoder the last two layers of dimensions [3, 2] were removed leaving a latent space of dimension `6`. In `VAE_20250608212013`'s encoder the last three layers of dimensions [6, 3, 2] were removing leaving a latent space of dimension `12`.
 
-![tensorboard](resources/latent_dimension_comparizon.png)
+![tensorboard](resources/latent_dimension_comparison.png)
 
  - Is higher `beta` yielding lower reconstruction loss?
 
