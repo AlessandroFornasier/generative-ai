@@ -34,15 +34,17 @@ class EulerSolver:
             SolverState: State containing solution and time steps.
         """
         def u(x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
-            return self.model(torch.cat([x, t.unsqueeze(-1).repeat(x.shape[0], 1)], dim=-1))
+            return self.model(torch.cat([t.unsqueeze(-1).repeat(x.shape[0], 1), x], dim=-1))
+           
+        self.model.eval()
             
-        x = x0.clone()
-        solutions = [x.clone()]
-        times = [self.time_grid[0].clone()]
+        x = x0.detach().clone()
+        solutions = [x.detach().clone()]
+        times = [self.time_grid[0].detach().clone()]
 
         for t in self.time_grid[1:]:
             x = x + self.step_size * u(x, t)
-            solutions.append(x.clone())
-            times.append(t.clone())
+            solutions.append(x.detach().clone())
+            times.append(t.detach().clone())
 
         return SolverSolution(x=torch.stack(solutions), t=torch.stack(times))
