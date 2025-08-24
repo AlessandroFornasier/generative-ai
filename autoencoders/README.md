@@ -46,8 +46,6 @@ This allows gradients to flow through $\mu$ and $\sigma$ during training, making
 - `src/data/` &mdash; Dataset loaders.
 - `src/helpers/` &mdash; Helper functions.
 
-## How to train on the MNIST and generate data
-
 ### Interesting questions:
 
  - How does the loss changes with respect to the dimension of the latent space? Is too much compression counter-productive?
