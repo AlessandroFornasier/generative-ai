@@ -17,7 +17,7 @@ Before defining the two steps required to achieve the aforementioned goal, let's
  The two steps needed to achieve the goal of sampling from the unknown data distribution are the following:
 
  1. *Training:* During training we want a neural network to learn the parameters $\theta$ of a vector field $u_{t, \theta}$ that defines the evolution of our sample $x_t$ via the following ODE: 
-    $$\dot{x}_t = u_{t, \theta}(x_t)$$
+ $$\dot{x}_t = u\_{t, \theta}(x_t)$$
 
  2. *Generation:* Once the neural network is trained and the vector field $u_{t, \theta}$ is learned, we sample $x_0 \sim p_0$ from a known predefined initial distribution $p_0$, and solve the ODE numerically to get $x_1 \sim p_1$.
 
@@ -61,6 +61,12 @@ That's it! The overall training algorithm is the following. For each batch of da
    $$\left\|u_{\theta}(X_t) - \left(\dot{\alpha}_t - \frac{\dot{\beta}_t}{\beta_t}\alpha_t\right)z + \frac{\dot{\beta}_t}{\beta_t}X_t\right\|^2$$
 
 ### Generation
+
+Generation is fairly simple, it's only about solving the aforementioned ODE numerically. The following algorithm shows how it can be done with the simple Euler method. Starts at $t = 0$. Draw a sample $x_0 \sim p_0$, then for each time stap $\delta_t = \frac{1}{n}$:
+
+ - Concatenate $X_t = (t, x_t)$
+ - Compute $x\_{t + \delta_t} = x\_t + \delta_t u\_{\theta}(X_t)$
+ - Update $t \leftarrow t + \delta_t$
 
 ## Questions
  - Could I sample more times for a given sampled data $z$ during training?
