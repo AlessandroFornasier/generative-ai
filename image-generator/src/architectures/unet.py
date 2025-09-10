@@ -1,5 +1,9 @@
 import torch
 import torch.nn as nn
+import math
+import pdb
+
+from typing import List, Union
 
 
 class TimeEmbedding(nn.Module):
@@ -23,10 +27,10 @@ class TimeEmbedding(nn.Module):
     Forward pass of the TimeEmbedding.
 
     Args:
-      x (torch.Tensor): Input tensor.
+      x (torch.Tensor): Input tensor (batch_Size, 1).
 
     Returns:
-      torch.Tensor: Output tensor after passing through the TimeEmbedding.
+      torch.Tensor: Output tensor after passing through the TimeEmbedding (batch_Size, m).
     """
     return self.network(x)
   
@@ -43,10 +47,10 @@ class ResidualBlock(nn.Module):
    - padding (int): Padding for the convolution.
   """
 
-  def __init__(self, n: int, m: int, kernel_size: int = 3, stride: int = 1, padding: int = 1, groups: int = 32) -> None:
+  def __init__(self, n: int, m: int, kernel_size: int = 3, groups: int = 32) -> None:
     super(ResidualBlock, self).__init__()
     
-    self.conv = nn.Conv2d(n, n, kernel_size=kernel_size, stride=stride, padding=padding)
+    self.conv = nn.Conv2d(n, n, kernel_size=kernel_size, stride=1, padding=1)
     self.norm = nn.GroupNorm(groups, n)
     self.res = nn.Identity()
     self.linear_time = nn.Linear(m, n)
@@ -81,12 +85,10 @@ class Downsample(nn.Module):
   Args:
    - n (int): Number of image's channels.
    - kernel_size (int): Size of the convolutional kernel.
-   - stride (int): Stride of the convolution (controls the downsampling).
-   - padding (int): Padding for the convolution.
   """
-  def __init__(self, n: int, kernel_size: int = 3, stride: int = 2, padding: int = 1) -> None:
+  def __init__(self, n: int, kernel_size: int = 3, padding: Union[int, tuple] = 1) -> None:
     super(Downsample, self).__init__()
-    self.conv = nn.Conv2d(n, n, kernel_size=kernel_size, stride=stride, padding=padding)
+    self.conv = nn.Conv2d(n, n, kernel_size=kernel_size, stride=2, padding=padding)
 
   def forward(self, x: torch.Tensor) -> torch.Tensor:
     """
@@ -108,12 +110,10 @@ class Upsample(nn.Module):
   Args:
    - n (int): Number of image's channels.
    - kernel_size (int): Size of the convolutional kernel.
-   - stride (int): Stride of the convolution (controls the upsampling).
-   - padding (int): Padding for the convolution.
   """
-  def __init__(self, n: int, kernel_size: int = 3, stride: int = 2, padding: int = 1) -> None:
+  def __init__(self, n: int, kernel_size: int = 3, padding: Union[int, tuple] = 1) -> None:
     super(Upsample, self).__init__()
-    self.conv = nn.ConvTranspose2d(n, n, kernel_size=kernel_size, stride=stride, padding=padding)
+    self.conv = nn.ConvTranspose2d(n, n, kernel_size=kernel_size, stride=2, padding=padding, output_padding=1)
 
   def forward(self, x: torch.Tensor) -> torch.Tensor:
     """
@@ -128,7 +128,7 @@ class Upsample(nn.Module):
     return self.conv(x)
 
 
-class SequentialWrapper(nn.Seqential):
+class SequentialWrapper(nn.Sequential):
   """
   A wrapper for nn.Sequential for passing the tensor x and the time embedding t.
   """
@@ -146,65 +146,82 @@ class UNet(nn.Module):
   UNet.
   
   Args:
+   - dims (List[int]): image dimensions (height, width).
    - n (int): Number of image's channels.
    - k (int): Number of latent space channels.
    - m (int): Dimension of the time embedding.
    - kernel_size (int): Size of the convolutional kernel.
-   - stride (int): Stride of the convolution.
-   - padding (int): Padding for the convolution.
+   - groups (int): Number of groups for the GroupNorm.
   """
-  def __init__(self, n: int, k: int, m: int, kernel_size: int = 3, stride: int = 1, padding: int = 1, groups: int = 32) -> None:
+  def __init__(self, dims: List[int], n: int, k: int, m: int, kernel_size: int = 3, groups: int = 32) -> None:
     super(UNet, self).__init__()
 
     self.time_embedding = TimeEmbedding(m)
 
+    padding = tuple(1 + (2 ** math.ceil(math.log2(dim)) - dim) // 2 for dim in dims)
+    kernel = tuple(kernel_size + 2 ** math.ceil(math.log2(dim)) - dim for dim in dims)
+
     self.encoders = nn.ModuleList([
-      # Initial convolution: (batch_Size, n, height, width) -> (batch_Size, k, height, width)
-      SequentialWrapper(nn.Conv2d(n, k, kernel_size=kernel_size, stride=stride, padding=padding)),
-      # Initial downsample: (batch_Size, k, height, width) -> (batch_Size, k, height / 2, width / 2)
-      SequentialWrapper(Downsample(k, kernel_size, 2, padding)),
+      # Initial convolution + downsample: (batch_Size, n, height, width) -> (batch_Size, k, height / 2, width / 2)
+      SequentialWrapper(
+        nn.Conv2d(n, k, kernel_size=kernel_size, stride=1, padding=padding),
+        Downsample(k, kernel_size)
+      ),
       # Encoder: (batch_Size, k, height / 2, width / 2) -> (batch_Size, k, height / 4, width / 4)
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding, groups)),
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding, groups)),
-      SequentialWrapper(Downsample(k, kernel_size, 2, padding)),
-      # Encoder: (batch_Size, k, height / 4, width / 4) -> (batch_Size, k, height / 8, width / 8)
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding, groups)),
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding, groups)),
-      SequentialWrapper(Downsample(k, kernel_size, 2, padding)),
-      # Encoder: (batch_Size, k, height / 8, width / 8) -> (batch_Size, k, height / 16, width / 16)
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding, groups)),
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding, groups)),
-      SequentialWrapper(Downsample(k, kernel_size, 2, padding)),
-      # Encoder: (batch_Size, k, height / 16, width / 16) -> (batch_Size, k, height / 32, width / 32)
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding, groups)),
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding, groups)),
-      SequentialWrapper(Downsample(k, kernel_size, 2, padding))
+      SequentialWrapper(
+        ResidualBlock(k, m, kernel_size, groups),
+        ResidualBlock(k, m, kernel_size, groups),
+        Downsample(k, kernel_size)
+      ),
+      # # Encoder: (batch_Size, k, height / 4, width / 4) -> (batch_Size, k, height / 8, width / 8)
+      # SequentialWrapper(
+      #   ResidualBlock(k, m, kernel_size, groups),
+      #   ResidualBlock(k, m, kernel_size, groups),
+      #   Downsample(k, kernel_size)
+      # ),
+      # # Encoder: (batch_Size, k, height / 8, width / 8) -> (batch_Size, k, height / 16, width / 16)
+      # SequentialWrapper(
+      #   ResidualBlock(k, m, kernel_size, groups),
+      #   ResidualBlock(k, m, kernel_size, groups),
+      #   Downsample(k, kernel_size)
+      # )
     ])
-    
-    self.bottleneck = nn.ModuleList([
-      # Bottleneck: (batch_Size, k, height / 32, width / 32) -> (batch_Size, k, height / 32, width / 32)
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding, groups)),
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding, groups)),
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding, groups))
-    ])
+  
+    # Bottleneck: (batch_Size, k, height / 16, width / 16) -> (batch_Size, k, height / 16, width / 16)  
+    self.bottleneck = SequentialWrapper(
+      ResidualBlock(k, m, kernel_size, groups),
+      ResidualBlock(k, m, kernel_size, groups),
+      ResidualBlock(k, m, kernel_size, groups)
+    )
     
     self.decoders = nn.ModuleList([
-      # Decoder: (batch_Size, k, height / 32, width / 32) -> (batch_Size, k, height / 16, width / 16)
-      SequentialWrapper(Upsample(k, kernel_size, 2, padding)),
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding)),
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding)),
-      # Decoder: (batch_Size, k, height / 16, width / 16) -> (batch_Size, k, height / 8, width / 8)
-      SequentialWrapper(Upsample(k, kernel_size, 2, padding)),
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding)),
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding)),
-      # Decoder: (batch_Size, k, height / 8, width / 8) -> (batch_Size, k, height / 4, width / 4)
-      SequentialWrapper(Upsample(k, kernel_size, 2, padding)),
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding)),
-      SequentialWrapper(ResidualBlock(k, m, kernel_size, stride, padding)),
-      # Final Upsample: (batch_Size, k, height / 4, width / 4) -> (batch_Size, k, height / 2, width / 2)
-      SequentialWrapper(Upsample(k, kernel_size, 2, padding)),
-      # Final convolution: (batch_Size, k, height / 2, width / 2) -> (batch_Size, n, height, width)
-      SequentialWrapper(nn.Conv2d(k, n, kernel_size=kernel_size, stride=stride, padding=padding))
+      # Decoder: (batch_Size, 2k, height / 16, width / 16) -> (batch_Size, 2k, height / 8, width / 8)
+      SequentialWrapper(
+        Upsample(2 * k, kernel_size),
+        ResidualBlock(2 * k, m, kernel_size, groups),
+        ResidualBlock(2 * k, m, kernel_size, groups)
+      ),
+      # # Decoder: (batch_Size, 3k, height / 8, width / 8) -> (batch_Size, 3k, height / 4, width / 4)
+      # SequentialWrapper(
+      #   Upsample(3 * k, kernel_size),
+      #   ResidualBlock(3 * k, m, kernel_size, groups),
+      #   ResidualBlock(3 * k, m, kernel_size, groups)
+      # ),
+      # # Decoder: (batch_Size, 4k, height / 4, width / 4) -> (batch_Size, 4k, height / 2, width / 2)
+      # SequentialWrapper(
+      #   Upsample(4 * k, kernel_size),
+      #   ResidualBlock(4 * k, m, kernel_size, groups),
+      #   ResidualBlock(4 * k, m, kernel_size, groups)
+      # ),
+      # # Final Upsample + convolution: (batch_Size, 5k, height / 2, width / 2) -> (batch_Size, n, height, width)
+      # SequentialWrapper(
+      #   Upsample(5 * k, kernel_size),
+      #   nn.Conv2d(5 * k, n, kernel_size=kernel , stride=1, padding=1)
+      # )
+      SequentialWrapper(
+        Upsample(3 * k, kernel_size),
+        nn.Conv2d(3 * k, n, kernel_size=kernel , stride=1, padding=1)
+      )
     ])
     
   def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
@@ -218,15 +235,17 @@ class UNet(nn.Module):
     Returns:
       torch.Tensor: Output tensor after passing through the encoder.
     """
+    t = self.time_embedding(t)
+    
     skip_connections = []
     for layers in self.encoders:
       x = layers(x, t)
       skip_connections.append(x)
-
+      
     x = self.bottleneck(x, t)
 
     for layers in self.decoders:
-      x = torch.cat((x, skip_connections.pop()), dim=1) 
+      x = torch.cat((x, skip_connections.pop()), dim=1)
       x = layers(x, t)
-
+      
     return x
