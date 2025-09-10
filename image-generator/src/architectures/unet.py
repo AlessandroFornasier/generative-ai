@@ -173,12 +173,12 @@ class UNet(nn.Module):
         ResidualBlock(k, m, kernel_size, groups),
         Downsample(k, kernel_size)
       ),
-      # # Encoder: (batch_Size, k, height / 4, width / 4) -> (batch_Size, k, height / 8, width / 8)
-      # SequentialWrapper(
-      #   ResidualBlock(k, m, kernel_size, groups),
-      #   ResidualBlock(k, m, kernel_size, groups),
-      #   Downsample(k, kernel_size)
-      # ),
+      # Encoder: (batch_Size, k, height / 4, width / 4) -> (batch_Size, k, height / 8, width / 8)
+      SequentialWrapper(
+        ResidualBlock(k, m, kernel_size, groups),
+        ResidualBlock(k, m, kernel_size, groups),
+        Downsample(k, kernel_size)
+      ),
       # # Encoder: (batch_Size, k, height / 8, width / 8) -> (batch_Size, k, height / 16, width / 16)
       # SequentialWrapper(
       #   ResidualBlock(k, m, kernel_size, groups),
@@ -201,12 +201,12 @@ class UNet(nn.Module):
         ResidualBlock(2 * k, m, kernel_size, groups),
         ResidualBlock(2 * k, m, kernel_size, groups)
       ),
-      # # Decoder: (batch_Size, 3k, height / 8, width / 8) -> (batch_Size, 3k, height / 4, width / 4)
-      # SequentialWrapper(
-      #   Upsample(3 * k, kernel_size),
-      #   ResidualBlock(3 * k, m, kernel_size, groups),
-      #   ResidualBlock(3 * k, m, kernel_size, groups)
-      # ),
+      # Decoder: (batch_Size, 3k, height / 8, width / 8) -> (batch_Size, 3k, height / 4, width / 4)
+      SequentialWrapper(
+        Upsample(3 * k, kernel_size),
+        ResidualBlock(3 * k, m, kernel_size, groups),
+        ResidualBlock(3 * k, m, kernel_size, groups)
+      ),
       # # Decoder: (batch_Size, 4k, height / 4, width / 4) -> (batch_Size, 4k, height / 2, width / 2)
       # SequentialWrapper(
       #   Upsample(4 * k, kernel_size),
@@ -219,8 +219,8 @@ class UNet(nn.Module):
       #   nn.Conv2d(5 * k, n, kernel_size=kernel , stride=1, padding=1)
       # )
       SequentialWrapper(
-        Upsample(3 * k, kernel_size),
-        nn.Conv2d(3 * k, n, kernel_size=kernel , stride=1, padding=1)
+        Upsample(4 * k, kernel_size),
+        nn.Conv2d(4 * k, n, kernel_size=kernel , stride=1, padding=1)
       )
     ])
     
