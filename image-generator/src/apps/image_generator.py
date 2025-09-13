@@ -127,9 +127,7 @@ if __name__ == '__main__':
         title = 'Select the model to use for generation:'
         selected = pick(model_names, title)[0] 
         load_model(models_path, selected, model)
-        title = 'Select the label to condition the generation (-1 for unconditional):'
-        labels = [str(i) for i in range(-1, 10)]
-        label = int(pick(labels, title)[0])
+        label = int(input("Enter the label to guide the generation (-1 for guidance free): "))
         generate(model, dataloader, f'{generated_path}/{selected}', label=label, steps=500)
     elif selected == 'train':
         writer = SummaryWriter(f'{runs_path}/{model_name}')
