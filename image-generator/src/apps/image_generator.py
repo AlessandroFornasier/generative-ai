@@ -1,6 +1,7 @@
 from os import name
 import sys
 import torch
+import math
 import torch.nn as nn
 import matplotlib.pyplot as plt
 import glob
@@ -28,7 +29,7 @@ def train_and_save_model(
     models_path : str, 
     model_name : str
   ) -> None:
-    trainer.train(dataloader, models_path, model_name)
+    trainer.train(dataloader, 0.1, models_path, model_name)
     trainer.save(models_path, model_name)
     epoch_files = glob.glob(f'{models_path}/{model_name}_epoch_*.pt')
     for file in epoch_files:
@@ -50,23 +51,42 @@ def load_model(path: str, name: str, model: nn.Module) -> None:
     print(f"Model: {name} loaded from {path}/{name}.pt")
 
 
-def generate(model: nn.Module, dataloader: DataLoader, path: str, n: int = 5) -> None:
+def generate(model: nn.Module, dataloader: DataLoader, path: str, w: float = 4.0, label: int = -1, n: int = 10, steps: int = 100) -> None:
     """
+    Generate samples from the model.
+
+    Args:
+      model (nn.Module): The model to use for generation.
+      dataloader (DataLoader): The dataloader for the dataset.
+      path (str): The path to save the generated samples.
+      w (float): The weight for the conditional generation (guidance scale). Default is 4.0.
+      label (int): The label to condition the generation on. Default is -1 (unconditional).
+      n (int): The number of samples to plot (equally spaced in time).
+      steps (int): The number of steps for the Euler solver.
     """
     device = next(model.parameters()).device
     sample_batch = next(iter(dataloader))
     sample_shape = sample_batch[0].shape[1:]
     x0 = torch.randn(1, *sample_shape, device=device)
-    time_grid = torch.linspace(0, 1, steps=100, dtype=torch.float32, device=device)
-    euler_solver = EulerSolver(model, step_size=0.01, time_grid=time_grid)
-    solution = euler_solver.solve(x0)
-    fig, ax = plt.subplots(1, n, figsize=(n, n))
+    y = torch.full((1, 1), fill_value=label, device=device).float()
+    time_grid = torch.linspace(0, 1, steps=steps, dtype=torch.float32, device=device)
+    euler_solver = EulerSolver(model, step_size=1/steps, time_grid=time_grid, guidance_scale=w)
+    solution = euler_solver.solve(x0, y)
+    rows = math.ceil(n / 5)
+    fig, ax = plt.subplots(rows, 5, figsize=(15, 3 * rows))
+    if rows == 1:
+        ax = ax.reshape(1, -1)
     for i in range(n):
-        idx = len(solution.x) // n * i
+        idx = (len(solution.x) // n * (i + 1)) - 1
         sample = solution.x[idx].squeeze().cpu().numpy()
-        ax[i].imshow(sample, cmap='gray')
-        ax[i].axis('off')
-    plt.savefig(f'{path}_samples.png')
+        ax[i // 5, i % 5].imshow(sample, cmap='gray')
+        ax[i // 5, i % 5].axis('off')
+        ax[i // 5, i % 5].set_title(f'Step {idx} at time {solution.t[idx]:.2f}')
+    for i in range(n, rows * 5):
+        ax[i // 5, i % 5].axis('off')
+    plt.tight_layout()
+    plt.savefig(f'{path}_samples.png', dpi=150, bbox_inches='tight')
+    plt.close()
   
   
 if __name__ == '__main__':
@@ -86,9 +106,9 @@ if __name__ == '__main__':
     dataloader = MNISTDataLoader(batch_size=128).get_dataloader(data_path=data_path, train=True)
 
     learning_rate = 5e-5
-    epochs = 20
+    epochs = 100
 
-    model = UNet(dims=[28, 28], n=1, k=448, m=32)
+    model = UNet(n=1, dims=[64, 128], m=32, groups=16)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
@@ -107,7 +127,10 @@ if __name__ == '__main__':
         title = 'Select the model to use for generation:'
         selected = pick(model_names, title)[0] 
         load_model(models_path, selected, model)
-        generate(model, dataloader, f'{generated_path}/{selected}')
+        title = 'Select the label to condition the generation (-1 for unconditional):'
+        labels = [str(i) for i in range(-1, 10)]
+        label = int(pick(labels, title)[0])
+        generate(model, dataloader, f'{generated_path}/{selected}', label=label, steps=500)
     elif selected == 'train':
         writer = SummaryWriter(f'{runs_path}/{model_name}')
         trainer = Trainer(device=device, model=model, path=path, loss=loss, optimizer=optimizer, epochs=epochs, writer=writer)

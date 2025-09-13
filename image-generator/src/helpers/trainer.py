@@ -1,6 +1,7 @@
 import os
 import torch
 import torch.nn as nn
+import pdb
 
 from tqdm.auto import tqdm
 from torch.optim import Optimizer
@@ -64,12 +65,13 @@ class Trainer:
     self.writer = writer
     self.models_folder = './models'
 
-  def train(self, dataloader: DataLoader, models_path: Optional[str] = None, model_name: Optional[str] = None) -> None:
+  def train(self, dataloader: DataLoader, p: float = 0.2, models_path: Optional[str] = None, model_name: Optional[str] = None) -> None:
     """
     Trains the flow matching model on the given dataset.
 
     Args:
       dataloader (DataLoader): The DataLoader for loading training data.
+      p (float): Probability of discarding labels for guided training.
       models_path (Optional[str]): Path to save model checkpoints. If None, checkpoints are not saved.
       model_name (Optional[str]): Name of the model for saving checkpoints. Required if models_path
     """
@@ -80,11 +82,16 @@ class Trainer:
       epoch_loss = 0.0
       progress_bar = tqdm(dataloader, desc=f"Epoch {epoch+1}/{self.epochs}")
 
-      for batch_idx, (data, _) in enumerate(progress_bar):
+      for batch_idx, (data, labels) in enumerate(progress_bar):
         z = data.to(self.device)
         t = torch.rand(data.size(0), 1, device=self.device)
+        if torch.rand(1).item() > p:
+            y = labels.to(self.device)
+        else:
+            y = torch.full_like(labels, -1, device=self.device)
+        y = y.float().unsqueeze(1)
         sample = self.path.sample(t, z)
-        u = self.model(sample.x, t)
+        u = self.model(sample.x, t, y)
         loss = self.loss(u, sample.u)
 
         self.optimizer.zero_grad()
