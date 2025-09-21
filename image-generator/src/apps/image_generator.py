@@ -85,7 +85,7 @@ def generate(model: nn.Module, dataloader: DataLoader, path: str, w: float = 4.0
     for i in range(n, rows * 5):
         ax[i // 5, i % 5].axis('off')
     plt.tight_layout()
-    plt.savefig(f'{path}_samples.png', dpi=150, bbox_inches='tight')
+    plt.savefig(f'{path}_path.png', dpi=150, bbox_inches='tight')
     plt.close()
   
   

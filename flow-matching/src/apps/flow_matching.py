@@ -129,7 +129,7 @@ def visualize_path(solution: SolverSolution, filename: str):
     plt.tight_layout()
     # plt.show()
 
-    plt.savefig(f"{filename}.png")
+    plt.savefig(f"{filename}.png", dpi=150, bbox_inches='tight')
     print(f"Probability path visualized and saved to {filename}.png")
 
 
