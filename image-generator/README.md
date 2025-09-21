@@ -6,7 +6,7 @@ This module trains a flow matching model to generate MNIST digit images. Specifi
 
 - Trains with classifier-free guidance (CFG) to enable conditional & unconditional generation using the same model.
 
-For the conceptual and mathematical background of flow matching (probability paths, training objective, ODE-based generation), see the detailed explanation in the main [flow-matching/README.md](../flow-matching/README.md).
+For the conceptual and mathematical background of flow matching (probability paths, training objective, ODE-based generation), see the detailed explanation in [flow-matching](../flow-matching/README.md).
 
 ## Classifier-Free Guidance (CFG)
 
