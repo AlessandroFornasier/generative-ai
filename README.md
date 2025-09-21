@@ -1,1 +1,2 @@
-# Understanding generative models with focus on diffusion models 
+# Understanding generative AI
+> with particular focus on flow matching models 
