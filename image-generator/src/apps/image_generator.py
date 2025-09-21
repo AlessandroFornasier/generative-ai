@@ -101,7 +101,7 @@ if __name__ == '__main__':
     Path(data_path).mkdir(parents=True, exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    model_name = f'Model_{timestamp}'
+    model_name = f'model_{timestamp}'
 
     dataloader = MNISTDataLoader(batch_size=128).get_dataloader(data_path=data_path, train=True)
 

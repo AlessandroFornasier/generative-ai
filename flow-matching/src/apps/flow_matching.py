@@ -146,15 +146,15 @@ if __name__ == '__main__':
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
     if dataset == '2D Gaussian Mixture':
-        models_path = f'{str(parent_path)}/models/MGD'
-        runs_path = f'{str(parent_path)}/runs/MGD'
-        generated_path = f'{str(parent_path)}/generated/MGD'
-        model_name = f'MGD_{timestamp}'
+        models_path = f'{str(parent_path)}/models/mgd'
+        runs_path = f'{str(parent_path)}/runs/mgd'
+        generated_path = f'{str(parent_path)}/generated/mgd'
+        model_name = f'mgd_{timestamp}'
     elif dataset == 'Moons':
-        models_path = f'{str(parent_path)}/models/Moons'
-        runs_path = f'{str(parent_path)}/runs/Moons'
-        generated_path = f'{str(parent_path)}/generated/Moons'
-        model_name = f'Moons_{timestamp}'
+        models_path = f'{str(parent_path)}/models/moons'
+        runs_path = f'{str(parent_path)}/runs/moons'
+        generated_path = f'{str(parent_path)}/generated/moons'
+        model_name = f'moons_{timestamp}'
 
 
     Path(models_path).mkdir(parents=True, exist_ok=True)
@@ -192,9 +192,9 @@ if __name__ == '__main__':
         visualize_path(generate_path(model), f'{generated_path}/{selected}_path')
     elif action == 'visualize dataset':
         if dataset == '2D Gaussian Mixture':
-            visualize_data(dataloader, 10000 , f'{generated_path}/MGD{modes}_dataset')
+            visualize_data(dataloader, 10000 , f'{generated_path}/mgd{modes}_dataset')
         elif dataset == 'Moons':
-            visualize_data(dataloader, 10000 , f'{generated_path}/Moons_dataset')
+            visualize_data(dataloader, 10000 , f'{generated_path}/moons_dataset')
     else:
         print('Enter number of epochs:')
         epochs = int(input())
