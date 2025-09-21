@@ -14,7 +14,7 @@ Classifier-free guidance improves conditional sample fidelity without needing an
 
 ### Training
 
-During training, with probability `p`, the label for a batch is replaced with a special "null" condition (implemented as -1). Therefore the model learns a conditional vector field: $u^{\text{conditional}}(X_t | z, y)$ as well as an nconditional vector field: $u^{\text{unconditional}}(X_t | z)$
+During training, with probability $p$, the label for a batch is replaced with a special "null" condition (implemented as -1). Therefore the model learns a conditional vector field: $u^{\text{conditional}}(X_t | z, y)$ as well as an nconditional vector field: $u^{\text{unconditional}}(X_t | z)$
 
 The overall training algorithm is the following. For each batch of data:
 
