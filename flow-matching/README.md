@@ -70,6 +70,6 @@ Generation is fairly simple, it's only about solving the aforementioned ODE nume
 
 ## Generated path for moons datates
 
-![Generated paths for moons dataset](flow-matching/generated/moons/moons_20250911062847_path.png)
+![Generated paths for moons dataset](generated/moons/moons_20250911062847_path.png)
 
 The figure above shows the generated probability paths when applying flow matching to the two moons dataset. Each trajectory represents the evolution of 1000 sample from the initial Gaussian distribution $p_0$ to the final data distribution $p_1$ following the learned vector field $u_{\theta}$.

@@ -44,6 +44,6 @@ The overall generation algorithm is the following.
 
  ## Generated path
 
-![Generated Path](image-generator/generated/model_20250913131734_path.png)
+![Generated Path](generated/model_20250913131734_path.png)
 
 This shows the denoising trajectory from random noise to a generated MNIST digit over the flow matching process.
