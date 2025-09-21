@@ -41,3 +41,9 @@ The overall generation algorithm is the following.
  - Concatenate $X_t = (t, x_t)$
  - Compute $x\_{t + \delta_t} = x\_t + \delta_t u^{\text{guided}}\_{\theta}(X_t)$
  - Update $t \leftarrow t + \delta_t$
+
+ ## Generated path
+
+![Generated Path](image-generator/generated/model_20250913131734_path.png)
+
+This shows the denoising trajectory from random noise to a generated MNIST digit over the flow matching process.

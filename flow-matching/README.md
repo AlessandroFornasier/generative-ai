@@ -68,5 +68,8 @@ Generation is fairly simple, it's only about solving the aforementioned ODE nume
  - Compute $x\_{t + \delta_t} = x\_t + \delta_t u\_{\theta}(X_t)$
  - Update $t \leftarrow t + \delta_t$
 
-## Questions
- - Could I sample more times for a given sampled data $z$ during training?
+## Generated path for moons datates
+
+![Generated paths for moons dataset](flow-matching/generated/moons/moons_20250911062847_path.png)
+
+The figure above shows the generated probability paths when applying flow matching to the two moons dataset. Each trajectory represents the evolution of 1000 sample from the initial Gaussian distribution $p_0$ to the final data distribution $p_1$ following the learned vector field $u_{\theta}$.
