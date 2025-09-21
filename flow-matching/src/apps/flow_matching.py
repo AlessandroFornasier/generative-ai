@@ -18,7 +18,7 @@ from architectures.mlp import FlowMatchingMLP
 from solvers.eueler import EulerSolver, SolverSolution
 from helpers.trainer import Trainer, FlowMatchingLoss
 from path.path import ProbabilityPath
-from data.dataloader import MultimodalGaussianDataloader, LettersDatasetDataloader
+from data.dataloader import MultimodalGaussianDataset, MoonsDataset
 
 def train_and_save_model(
     trainer : Trainer, 
@@ -107,17 +107,24 @@ def visualize_path(solution: SolverSolution, filename: str):
     Args:
         solutions (torch.Tensor): Solutions from the Euler solver.
     """
-    _, axs = plt.subplots(1, 10, figsize=(20, 2))
-    
+    _, axs = plt.subplots(2, 5, figsize=(10, 4))
+
     indices = torch.linspace(0, len(solution.t) - 1, steps=10).long()
 
+    axs_dims = []
     for i, idx in enumerate(indices):
         points = solution.x[idx].cpu().detach().numpy()
-        axs[i].scatter(points[:, 0], points[:, 1], s=1, alpha=0.5)
-        axs[i].set_title(f't={solution.t[idx].item():.2f}')
-        axs[i].set_aspect('equal')
-        axs[i].set_xlim(-10, 10)
-        axs[i].set_ylim(-10, 10)
+        axs[i // 5, i % 5].scatter(points[:, 0], points[:, 1], s=1, alpha=0.5)
+        axs[i // 5, i % 5].set_title(f't={solution.t[idx].item():.2f}')
+        axs[i // 5, i % 5].set_aspect('equal')
+        axs_dims.append((axs[i // 5, i % 5].get_xlim(), axs[i // 5, i % 5].get_ylim()))
+
+    x_lim = max([max(lim[0]) for lim in axs_dims])
+    y_lim = max([max(lim[1]) for lim in axs_dims])
+    
+    for i in range(10):
+        axs[i // 5, i % 5].set_xlim(-x_lim, x_lim)
+        axs[i // 5, i % 5].set_ylim(-y_lim, y_lim)
 
     plt.tight_layout()
     # plt.show()
@@ -127,36 +134,48 @@ def visualize_path(solution: SolverSolution, filename: str):
 
 
 if __name__ == '__main__':
-    # models_path = f'{str(parent_path)}/models/MGD'
-    # runs_path = f'{str(parent_path)}/runs/MGD'
-    # generated_path = f'{str(parent_path)}/generated/MGD'
     
-    models_path = f'{str(parent_path)}/models/Letters'
-    runs_path = f'{str(parent_path)}/runs/Letters'
-    generated_path = f'{str(parent_path)}/generated/Letters'
+    title = 'Select one among the following option:'
+    options = ['generate', 'train', 'visualize dataset']
+    action = pick(options, title)[0]
+
+    title = 'Select one of the following supported distributions:'
+    options = ['2D Gaussian Mixture', 'Moons']
+    dataset = pick(options, title)[0]
+
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+
+    if dataset == '2D Gaussian Mixture':
+        models_path = f'{str(parent_path)}/models/MGD'
+        runs_path = f'{str(parent_path)}/runs/MGD'
+        generated_path = f'{str(parent_path)}/generated/MGD'
+        model_name = f'MGD_{timestamp}'
+    elif dataset == 'Moons':
+        models_path = f'{str(parent_path)}/models/Moons'
+        runs_path = f'{str(parent_path)}/runs/Moons'
+        generated_path = f'{str(parent_path)}/generated/Moons'
+        model_name = f'Moons_{timestamp}'
+
 
     Path(models_path).mkdir(parents=True, exist_ok=True)
     Path(runs_path).mkdir(parents=True, exist_ok=True)
     Path(generated_path).mkdir(parents=True, exist_ok=True)
 
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    # model_name = f'MGD_{timestamp}'
-    model_name = f'Letters_{timestamp}'
-
-    samples = 1000000
-    # modes = 6
-    # dataloader_factory = MultimodalGaussianDataloader(n_samples=samples, n_modes=modes, dim=2, scale=7.0, std=0.05, seed=1, batch_size=1000, shuffle=True)
-    dataloader_factory = LettersDatasetDataloader(n_samples=samples, seed=1, std=0.25, batch_size=1000, shuffle=True)
+    if action != 'generate':
+        if dataset == '2D Gaussian Mixture':
+            print('Enter number of modes:')
+            modes = int(input())
+            dataloader = DataLoader(MultimodalGaussianDataset(n_samples=10000, n_modes=modes, dim=2, scale=7.0, std=0.05, seed=1), batch_size=1000, shuffle=True)
+        elif dataset == 'Moons':
+            dataloader = DataLoader(MoonsDataset(n_samples=10000, noise=0.1, seed=1), batch_size=1000, shuffle=True)
 
     dims = [2, 512, 512, 512, 512, 2]
     learning_rate = 1e-3
-    epochs = 20
 
     model_factory = FlowMatchingMLP(dims)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
-    dataloader = dataloader_factory()
     model = model_factory()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -164,22 +183,21 @@ if __name__ == '__main__':
     path = ProbabilityPath()
     loss = FlowMatchingLoss()
 
-    title = 'Select one among the following option:'
-    options = ['generate', 'train', 'visualize dataset']
-    selected = pick(options, title)[0]
-
     model_names = [f.stem for f in Path(models_path).glob('*.pt') if f.is_file()]
 
-    if selected == 'generate':
+    if action == 'generate':
         title = 'Select the model to use for generation:'
         selected = pick(model_names, title)[0] 
         load_model(models_path, selected, model)
         visualize_path(generate_path(model), f'{generated_path}/{selected}_path')
-    elif selected == 'visualize dataset':
-        samples = 100000
-        # visualize_data(dataloader, samples , f'{generated_path}/MGD_{samples}_sample_dataset')
-        visualize_data(dataloader, samples , f'{generated_path}/Letters_{samples}_sample_dataset')
+    elif action == 'visualize dataset':
+        if dataset == '2D Gaussian Mixture':
+            visualize_data(dataloader, 10000 , f'{generated_path}/MGD{modes}_dataset')
+        elif dataset == 'Moons':
+            visualize_data(dataloader, 10000 , f'{generated_path}/Moons_dataset')
     else:
+        print('Enter number of epochs:')
+        epochs = int(input())
         writer = SummaryWriter(f'{runs_path}/{model_name}')
         trainer = Trainer(device=device, model=model, path=path, loss=loss, optimizer=optimizer, epochs=epochs, writer=writer)
         train_and_save_model(trainer, dataloader, writer, models_path, model_name)
