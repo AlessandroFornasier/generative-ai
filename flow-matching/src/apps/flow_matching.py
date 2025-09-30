@@ -46,7 +46,7 @@ def load_model(path: str, name: str, model: nn.Module) -> None:
     print(f"Model: {name} loaded from {path}/{name}.pt")
 
 
-def generate_path(model: nn.Module) -> SolverSolution:
+def generate_path(model: nn.Module, steps: int = 100) -> SolverSolution:
     """
     Generate a path using the Euler solver.
     
@@ -58,8 +58,8 @@ def generate_path(model: nn.Module) -> SolverSolution:
     """
     device = next(model.parameters()).device
     x0 = torch.randn((1000, 2), dtype=torch.float32, device=device)
-    time_grid = torch.linspace(0, 1, steps=100, dtype=torch.float32, device=device)
-    euler_solver = EulerSolver(model, step_size=0.01, time_grid=time_grid)
+    time_grid = torch.linspace(0, 1, steps=steps, dtype=torch.float32, device=device)
+    euler_solver = EulerSolver(model, step_size=1/steps, time_grid=time_grid)
     return euler_solver.solve(x0)
 
 
@@ -189,7 +189,9 @@ if __name__ == '__main__':
         title = 'Select the model to use for generation:'
         selected = pick(model_names, title)[0] 
         load_model(models_path, selected, model)
-        visualize_path(generate_path(model), f'{generated_path}/{selected}_path')
+        steps = int(input('Enter number of steps for the Euler solver: '))
+        name = input('Enter a custom name for the generated path (without extension): ').strip()
+        visualize_path(generate_path(model, steps), f'{generated_path}/{selected}_{name}_path')
     elif action == 'visualize dataset':
         if dataset == '2D Gaussian Mixture':
             visualize_data(dataloader, 10000 , f'{generated_path}/mgd{modes}_dataset')
