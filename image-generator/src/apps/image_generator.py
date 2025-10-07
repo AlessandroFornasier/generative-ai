@@ -128,7 +128,8 @@ if __name__ == '__main__':
         selected = pick(model_names, title)[0] 
         load_model(models_path, selected, model)
         label = int(input("Enter the label to guide the generation (-1 for guidance free): "))
-        generate(model, dataloader, f'{generated_path}/{selected}', label=label, steps=500)
+        steps = int(input("Enter the number of steps for the Euler solver (e.g., 500): "))
+        generate(model, dataloader, f'{generated_path}/{selected}', label=label, steps=steps)
     elif selected == 'train':
         writer = SummaryWriter(f'{runs_path}/{model_name}')
         trainer = Trainer(device=device, model=model, path=path, loss=loss, optimizer=optimizer, epochs=epochs, writer=writer)
@@ -138,6 +139,11 @@ if __name__ == '__main__':
         title = 'Select the model to finetune:'
         selected = pick(model_names, title)[0]
         load_model(models_path, selected, model) 
+        epochs = int(input("Enter the number of epochs for finetuning (e.g., 50): "))
+        learning_rate = float(input("Enter the learning rate for finetuning (e.g., 1e-5): "))
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = learning_rate
+        model_name = f'{selected}_finetuned_{timestamp}'
         writer = SummaryWriter(f'{runs_path}/{model_name}')
         trainer = Trainer(device=device, model=model, path=path, loss=loss, optimizer=optimizer, epochs=epochs, writer=writer)
         train_and_save_model(trainer, dataloader, writer, models_path, model_name)
